@@ -827,7 +827,7 @@ resource "aws_iam_role_policy" "scheduler_policy" {
   })
 }
 
-# Scheduler schedule to stop EC2 instances at 12 PM (midnight)
+# Scheduler schedule to stop EC2 instances at 2 AM (midnight)
 resource "aws_scheduler_schedule" "stop_ec2" {
   name       = "${var.project_id}-stop-ec2-schedule"
   group_name = "default"
@@ -836,7 +836,7 @@ resource "aws_scheduler_schedule" "stop_ec2" {
     mode = "OFF"
   }
 
-  schedule_expression = "cron(0 0 * * ? *)"
+  schedule_expression = "cron(0 3 * * ? *)"
 
   target {
     arn      = "arn:aws:scheduler:::aws-sdk:ec2:stopInstances"
@@ -858,7 +858,7 @@ resource "aws_scheduler_schedule" "start_ec2" {
     mode = "OFF"
   }
 
-  schedule_expression = "cron(0 4 * * ? *)"
+  schedule_expression = "cron(0 12 * * ? *)"
 
   target {
     arn      = "arn:aws:scheduler:::aws-sdk:ec2:startInstances"
