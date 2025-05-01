@@ -31,9 +31,13 @@
             This application 
             <span 
               @click="allow" 
+              XXtouchstart="allow"
               style="cursor: text;"
             >allows</span> 
             you to experiment with GenAI.
+            <p>
+              {{allowResult}}
+            </p>
           </p>
         </v-card-text>
       </v-card>
@@ -115,9 +119,7 @@
 
               <v-list>
                 <v-list-item>
-                  <v-list-item-content>
-                    <v-list-item-title style="font-weight: bold; font-size: 1.2em; color: #1976D2;">Running on EC2</v-list-item-title>
-                  </v-list-item-content>
+                  <v-list-item-title style="font-weight: bold; font-size: 1.2em; color: #1976D2;">Running on EC2</v-list-item-title>
                 </v-list-item>
                 <v-list-item
                   v-for="app in projectInfo.apps"
@@ -131,9 +133,7 @@
               
               <v-list v-if="projectInfo.appsg">
                 <v-list-item>
-                  <v-list-item-content>
-                    <v-list-item-title style="font-weight: bold; font-size: 1.2em; color: #1976D2;">Running on GPU EC2</v-list-item-title>
-                  </v-list-item-content>
+                  <v-list-item-title style="font-weight: bold; font-size: 1.2em; color: #1976D2;">Running on GPU EC2</v-list-item-title>
                 </v-list-item>
                 <v-list-item
                   v-for="app in projectInfo.appsg"
@@ -202,92 +202,52 @@
                 <v-card-text>
                   <v-list>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>Elastic IP</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.elasticIP }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>AWS Account ID</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.awsAccountId }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>EIP Public DNS</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.eipPublicDns }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>Elastic IP</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.elasticIP }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>Instance ID (G)</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.instanceIdG }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>EIP Public DNS</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.eipPublicDns }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>EC2 Public DNS</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.ec2PublicDns }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>Instance ID (G)</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.instanceIdG }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>Instance ID</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.instanceId }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>EC2 Public DNS</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.ec2PublicDns }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>Elastic IP (G)</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.elasticIPG }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>Instance ID</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.instanceId }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>EIP Public DNS (G)</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.eipPublicDnsG }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>Elastic IP (G)</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.elasticIPG }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>Controller URL</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.controllerUrl }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>EIP Public DNS (G)</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.eipPublicDnsG }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>Data Bucket Name</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.dataBucketName }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>Controller URL</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.controllerUrl }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>Project ID</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.projectId }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>Data Bucket Name</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.dataBucketName }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
-                      <v-list-item-content>
-                        <v-list-item-title>EC2 Security Group ID</v-list-item-title>
-                      </v-list-item-content>
-                      <v-list-item-content>
-                        <v-list-item-subtitle>{{ projectInfo.ec2SecurityGroupId }}</v-list-item-subtitle>
-                      </v-list-item-content>
+                      <v-list-item-title>Project ID</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.projectId }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>EC2 Security Group ID</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.ec2SecurityGroupId }}</v-list-item-subtitle>
                     </v-list-item>
                   </v-list>
                 </v-card-text>
@@ -448,7 +408,7 @@
             this.projectInfo = JSON.parse(cachedProjectInfo);
             console.log('Using cached projectInfo');
           } else {
-            this.refreshProjectInfo();
+            await this.refreshProjectInfo();
           }
         } catch (error) {
           console.error("Could not get project info:", error);
@@ -512,13 +472,17 @@
       data: function () {
         return {
           state: store.state,
+          showAllowResults: false,
+          allowResult: ''
         }
       },
       methods: {
         async allow() {
           try {
-            // let response = await fetch('https://api.ipify.org?format=json');
-            let response = await fetch('https://api.my-ip.io/v2/ip.json');
+            let ipApi = 'https://api.ipify.org/?format=json';
+            // let ipApi = 'https://api.my-ip.io/v2/ip.json';
+            this.allowResult = 'Finding ip';            
+            let response = await fetch(ipApi);
             const data = await response.json();
 
             // Extract the IP address from the response
@@ -526,15 +490,21 @@
 
             // Display the IP address (you can modify this part as needed)
             console.log('Your IP address is:', ipAddress);
+            this.allowResult = this.allowResult + '...' + ipAddress
 
             response = await fetch(`${baseUrl}/allow?ip=${ipAddress}`);
             if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
+              // this.allowResult = this.allowResult + '...Error1: ' + response.status;
+              const responseBody = await response.text();              
+              throw new Error(responseBody);
             }
             let allowResp = await response.json();
             console.log('allowResp:', allowResp);
-
+            // this.allowResult = '12';            
+            this.allowResult = this.allowResult + '...' + allowResp.message;
           } catch (error) {
+            // this.allowResult = '1X';            
+            this.allowResult = this.allowResult + '...' + error;
             console.error('Error fetching IP address:', error);
             throw error; // Re-throw the error if you want to handle it outside the function
           }
