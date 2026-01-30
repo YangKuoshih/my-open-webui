@@ -316,6 +316,15 @@ install_portainer() {
     echo "Portainer installed"
 }
 
+install_n8n() {
+    echo "Installing n8n in docker"
+    export N8N_DIR=/home/ec2-user/docker/n8n
+    cd $N8N_DIR
+    docker-compose up -d --quiet-pull
+    sudo chown -R ec2-user:ec2-user $N8N_DIR
+    echo "n8n installed"
+}
+
 install_miniconda() {
     if [ -d "/home/ec2-user/miniconda" ]; then
         echo "Miniconda is already installed."
@@ -596,6 +605,7 @@ install_docker
 install_docker_compose
 start_containers
 install_portainer
+install_n8n
 install_controller
 install_caddy
 install_code_server

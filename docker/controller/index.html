@@ -1,587 +1,1019 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Controller</title>
-  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify-labs.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTRL // Infrastructure Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --bg-card: #14141c;
+            --accent-cyan: #00f0ff;
+            --accent-magenta: #ff00aa;
+            --accent-yellow: #f0ff00;
+            --accent-green: #00ff88;
+            --accent-orange: #ff8800;
+            --accent-red: #ff4466;
+            --text-primary: #ffffff;
+            --text-secondary: #8888aa;
+            --text-muted: #555566;
+            --border-color: #2a2a3a;
+            --border-light: #3a3a4a;
+            --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.3);
+            --glow-green: 0 0 20px rgba(0, 255, 136, 0.3);
+            --glow-red: 0 0 20px rgba(255, 68, 102, 0.3);
+        }
 
-  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/editor/editor.main.css"> -->
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  <style>
-  </style>
+        html {
+            font-size: 14px;
+        }
 
-  <!-- <script type="text/x-template" id="xyz-template">
-    <v-container fluid>
-      <div class="text-h5">Xys</div>
-      <p>About xyz</p>
-    </v-container>
-  </script> -->
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-  <script type="text/x-template" id="about-template">
-    <v-container fluid>
-      <v-card>
-        <v-card-title class="text-h5">About</v-card-title>
-        <v-card-text>
-          <p>
-            This application 
-            <span 
-              @click="allow" 
-              XXtouchstart="allow"
-              style="cursor: text;"
-            >allows</span> 
-            you to experiment with GenAI.
-            <p>
-              {{allowResult}}
-            </p>
-          </p>
-        </v-card-text>
-      </v-card>
-    </v-container>
-  </script>
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 240, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.015) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
 
-  <script type="text/x-template" id="schedule-template">
-    <v-container fluid>
-      <v-row>
-        <v-col cols="8">
-          <v-card>
-            <v-card-title>EC2 Audo Start Stop Scheduler Settings</v-card-title>
-            <v-card-text>
-              <!-- Start EC2 Scheduler -->
-              <v-switch
-                v-model="startSchedulerEnabled"
-                label="Enable Start EC2 Scheduler"
-              ></v-switch>
-              <v-row v-if="startSchedulerEnabled">
-                <v-col cols="12" sm="6">
-                  <v-time-picker
-                    v-model="startTime"
-                    format="24hr"
-                    :disabled="!startSchedulerEnabled"
-                  ></v-time-picker>
-                </v-col>
-              </v-row>
-      
-              <!-- Stop EC2 Scheduler -->
-              <v-switch
-                v-model="stopSchedulerEnabled"
-                label="Enable Stop EC2 Scheduler"
-              ></v-switch>
-              <v-row v-if="stopSchedulerEnabled">
-                <v-col cols="12" sm="6">
-                  <v-time-picker
-                    v-model="stopTime"
-                    format="24hr"
-                    :disabled="!stopSchedulerEnabled"
-                  ></v-time-picker>
-                </v-col>
-              </v-row>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="primary" @click="saveSettings">Save Settings</v-btn>
-            </v-card-actions>
-          </v-card>        
-        </v-col>
-      </v-row>
-    </v-container>
-  </script>
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 32px;
+        }
 
-  <script type="text/x-template" id="home-template">
-    <v-container fluid>
-      <v-row v-if="ec2SetupStatus.endedMinutes < 5 && ec2SetupStatus.endedHours < 1">
-        <v-col>
-          EC2 Setup Status: {{ec2SetupStatus.status}}
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col cols="4">
-          <v-card>
-            <!-- <v-card-title>Application Links</v-card-title> -->
+        .header-inner {
+            max-width: 1800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 72px;
+        }
 
-            <v-card-title class="d-flex align-center">
-              Application Links
-              <v-btn
-                icon
-                x-small
-                class="ml-2"
-                @click="refreshProjectInfo"
-              >
-                <v-icon>mdi-refresh</v-icon>
-              </v-btn>
-            </v-card-title>
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
 
-            <v-card-text>
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-magenta) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            color: var(--bg-primary);
+        }
 
-              <v-list>
-                <v-list-item>
-                  <v-list-item-title style="font-weight: bold; font-size: 1.2em; color: #1976D2;">Running on EC2</v-list-item-title>
-                </v-list-item>
-                <v-list-item
-                  v-for="app in projectInfo.apps"
-                  :key="app.name"
-                  :href="'https://' + projectInfo.eipPublicDns + ':' + app.port"
-                  target="_blank"
-                >
-                  <v-list-item-title>{{ app.name }}</v-list-item-title>
-                </v-list-item>
-              </v-list>
-              
-              <v-list v-if="projectInfo.appsg">
-                <v-list-item>
-                  <v-list-item-title style="font-weight: bold; font-size: 1.2em; color: #1976D2;">Running on GPU EC2</v-list-item-title>
-                </v-list-item>
-                <v-list-item
-                  v-for="app in projectInfo.appsg"
-                  :key="app.name"
-                  :href="'https://' + projectInfo.eipPublicDnsG + ':' + app.port"
-                  target="_blank"
-                >
-                  <v-list-item-title>{{ app.name }}</v-list-item-title>
-                </v-list-item>
-              </v-list>              
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            z-index: -1;
+            opacity: 0.3;
+            filter: blur(8px);
+        }
 
-            </v-card-text>
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
 
+        .logo-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, var(--text-primary), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
+        .logo-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
 
-          </v-card>
-        </v-col>
-    
-        <v-col cols="8">
-          <v-row>
-            <v-col v-for="(ec2, index) in ec2List" :key="index">
-              <v-card>
-                <v-card-title>{{ec2.name}} Controls
-  
-                  (Status: {{ec2.ec2Status}})
-                  <v-icon
-                    xx-small
-                    class="ml-2"
-                    @click="getEc2Status(index)"
-                  >
-                    mdi-refresh
-                  </v-icon>
-  
-                </v-card-title>
-                <v-card-text>
-                  <v-btn
-                    color="success"
-                    @click="startEc2(index)"
-                    class="mr-4 mb-4"
-                  >
-                    <v-icon left>mdi-play</v-icon>
-                    Start EC2
-                  </v-btn>
-                  
-                  <v-btn
-                    color="error"
-                    @click="stopEc2(index)"
-                    class="mr-4 mb-4"
-                  >
-                    <v-icon left>mdi-stop</v-icon>
-                    Stop EC2
-                  </v-btn>
-                </v-card-text>
-              </v-card>
-  
-            </v-col>
-          </v-row>
-          <v-row>
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
 
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
 
-            <v-col>
-              <v-card>
-                <v-card-title>
-                  Project Information
-                </v-card-title>
-                <v-card-text>
-                  <v-list>
-                    <v-list-item>
-                      <v-list-item-title>AWS Account ID</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.awsAccountId }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>Elastic IP</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.elasticIP }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>EIP Public DNS</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.eipPublicDns }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>Instance ID (G)</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.instanceIdG }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>EC2 Public DNS</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.ec2PublicDns }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>Instance ID</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.instanceId }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>Elastic IP (G)</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.elasticIPG }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>EIP Public DNS (G)</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.eipPublicDnsG }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>Controller URL</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.controllerUrl }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>Data Bucket Name</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.dataBucketName }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>Project ID</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.projectId }}</v-list-item-subtitle>
-                    </v-list-item>
-                    <v-list-item>
-                      <v-list-item-title>EC2 Security Group ID</v-list-item-title>
-                      <v-list-item-subtitle>{{ projectInfo.ec2SecurityGroupId }}</v-list-item-subtitle>
-                    </v-list-item>
-                  </v-list>
-                </v-card-text>
-              </v-card>              
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
 
-            </v-col>
+        .status-dot.online { background: var(--accent-green); }
+        .status-dot.offline { background: var(--accent-red); animation: none; }
+        .status-dot.pending { background: var(--accent-yellow); }
 
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(0, 255, 136, 0); }
+        }
 
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
 
-          </v-row>
-        </v-col>
-      </v-row>
+        .btn {
+            padding: 10px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
+        .btn:hover {
+            border-color: var(--accent-cyan);
+            background: var(--bg-tertiary);
+        }
 
-    </v-container>
-  </script>
+        .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-danger {
+            border-color: rgba(255, 68, 102, 0.3);
+            color: var(--accent-red);
+        }
+
+        .btn-danger:hover {
+            border-color: var(--accent-red);
+            background: rgba(255, 68, 102, 0.1);
+        }
+
+        /* Main content */
+        .main {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 32px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* EC2 Control Panel */
+        .ec2-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 32px;
+            overflow: hidden;
+        }
+
+        .ec2-panel::before {
+            content: '';
+            display: block;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta), var(--accent-yellow));
+        }
+
+        .ec2-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 28px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ec2-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .ec2-title h2 {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .ec2-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .ec2-badge.running {
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .ec2-badge.stopped {
+            background: rgba(255, 68, 102, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(255, 68, 102, 0.3);
+        }
+
+        .ec2-badge.pending {
+            background: rgba(240, 255, 0, 0.15);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(240, 255, 0, 0.3);
+        }
+
+        .ec2-controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-ec2 {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .btn-ec2 svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-ec2-start {
+            background: linear-gradient(135deg, var(--accent-green) 0%, #00cc6a 100%);
+            color: var(--bg-primary);
+        }
+
+        .btn-ec2-start:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-green);
+        }
+
+        .btn-ec2-stop {
+            background: linear-gradient(135deg, var(--accent-red) 0%, #cc3355 100%);
+            color: white;
+        }
+
+        .btn-ec2-stop:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-red);
+        }
+
+        .ec2-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1px;
+            background: var(--border-color);
+        }
+
+        .ec2-info-item {
+            background: var(--bg-card);
+            padding: 20px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ec2-info-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .ec2-info-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--accent-cyan);
+            word-break: break-all;
+        }
+
+        /* Services Section */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title h2 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .section-title-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-cyan);
+        }
+
+        .section-title-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .section-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-tertiary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Services Grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .service-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px 20px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--service-color, var(--accent-cyan));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .service-card:hover {
+            border-color: var(--service-color, var(--accent-cyan));
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .service-card:hover::before {
+            opacity: 1;
+        }
+
+        .service-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--service-color, var(--accent-cyan));
+            transition: all 0.3s ease;
+        }
+
+        .service-icon svg {
+            width: 26px;
+            height: 26px;
+            stroke-width: 1.5;
+        }
+
+        .service-card:hover .service-icon {
+            border-color: var(--service-color, var(--accent-cyan));
+            box-shadow: 0 0 20px color-mix(in srgb, var(--service-color, var(--accent-cyan)) 30%, transparent);
+        }
+
+        .service-name {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .service-port {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-primary);
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .service-category {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: var(--service-color, var(--accent-cyan));
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        /* Category colors */
+        .service-card[data-category="ai"] { --service-color: #00f0ff; }
+        .service-card[data-category="dev"] { --service-color: #ff00aa; }
+        .service-card[data-category="ops"] { --service-color: #f0ff00; }
+        .service-card[data-category="media"] { --service-color: #ff8800; }
+        .service-card[data-category="storage"] { --service-color: #00ff88; }
+
+        /* Project Info */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+            text-align: right;
+            word-break: break-all;
+            max-width: 60%;
+        }
+
+        .info-value.highlight {
+            color: var(--accent-cyan);
+        }
+
+        /* Loading state */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            gap: 24px;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-color: var(--accent-green);
+        }
+
+        .toast.error {
+            border-color: var(--accent-red);
+        }
+
+        .toast svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-inner {
+                padding: 0 16px;
+            }
+
+            .header-status {
+                display: none;
+            }
+
+            .main {
+                padding: 20px 16px;
+            }
+
+            .ec2-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+
+            .services-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 12px;
+            }
+
+            .service-card {
+                padding: 16px;
+            }
+
+            .service-icon {
+                width: 44px;
+                height: 44px;
+            }
+
+            .service-icon svg {
+                width: 22px;
+                height: 22px;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.4s ease forwards;
+        }
+
+        .animate-delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .animate-delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .animate-delay-3 { animation-delay: 0.3s; opacity: 0; }
+    </style>
 </head>
-
 <body>
-  <div id="app">
-    <v-app>
-      <v-app-bar color="primary">
-        <v-app-bar-title>Controller</v-app-bar-title>
-        <v-spacer></v-spacer>
-        <v-btn to="/">Home</v-btn>
-        <!-- <v-btn to="/schedule">Schedule</v-btn> -->
-        <v-btn to="/about">About</v-btn>
-        <v-btn @click="logout">Logout</v-btn>
-      </v-app-bar>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">INITIALIZING SYSTEMS...</div>
+    </div>
 
-      <v-main>
-        <router-view></router-view>
-      </v-main>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i data-lucide="zap"></i>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-title">Infrastructure Controller</span>
+                    <span class="logo-subtitle">Command Center</span>
+                </div>
+            </div>
 
+            <div class="header-status">
+                <div class="status-item">
+                    <span class="status-dot" id="connectionStatus"></span>
+                    <span id="connectionText">CONNECTED</span>
+                </div>
+                <div class="status-item">
+                    <span style="color: var(--text-muted);">PROJECT:</span>
+                    <span id="headerProjectId" style="color: var(--accent-cyan);">---</span>
+                </div>
+            </div>
 
-      <v-snackbar v-model="snackbar" :color="snackbarColor">
-        {{ snackbarText }}
-        <template v-slot:actions>
-          <v-btn color="white" text @click="snackbar = false">Close</v-btn>
-        </template>
-      </v-snackbar>
-    </v-app>
-  </div>
+            <div class="header-actions">
+                <button class="btn" onclick="refreshData()">
+                    <i data-lucide="refresh-cw"></i>
+                    Refresh
+                </button>
+                <button class="btn btn-danger" onclick="logout()">
+                    <i data-lucide="log-out"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
 
-  <script src="https://unpkg.com/vue@3.3.4/dist/vue.global.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify-labs.min.js"></script>
-  <script src="https://unpkg.com/vue-router@4.2.4/dist/vue-router.global.js"></script>
-  <!-- <script src="https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/loader.js"></script> -->
-  <script>
-    const { createApp, ref } = Vue;
-    const { createVuetify } = Vuetify;
-    const { createRouter, createWebHashHistory } = VueRouter;
-    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    let baseUrl = ''
-    if (!isLocalhost) {
-      baseUrl = `https://${window.location.hostname}`
-      console.log(`Using base URL: ${baseUrl}`);
-    }
+    <!-- Main Content -->
+    <main class="main" id="mainContent">
+        <!-- EC2 Control Panel -->
+        <section class="ec2-panel animate-in animate-delay-1">
+            <div class="ec2-header">
+                <div class="ec2-title">
+                    <h2>EC2 Instance Control</h2>
+                    <span class="ec2-badge" id="ec2StatusBadge">CHECKING...</span>
+                </div>
+                <div class="ec2-controls">
+                    <button class="btn-ec2 btn-ec2-start" onclick="startEC2(0)">
+                        <i data-lucide="play"></i> Start Instance
+                    </button>
+                    <button class="btn-ec2 btn-ec2-stop" onclick="stopEC2(0)">
+                        <i data-lucide="square"></i> Stop Instance
+                    </button>
+                </div>
+            </div>
+            <div class="ec2-info">
+                <div class="ec2-info-item">
+                    <span class="ec2-info-label">Instance ID</span>
+                    <span class="ec2-info-value" id="infoInstanceId">---</span>
+                </div>
+                <div class="ec2-info-item">
+                    <span class="ec2-info-label">Elastic IP</span>
+                    <span class="ec2-info-value" id="infoElasticIp">---</span>
+                </div>
+                <div class="ec2-info-item">
+                    <span class="ec2-info-label">Public DNS</span>
+                    <span class="ec2-info-value" id="infoPublicDns">---</span>
+                </div>
+                <div class="ec2-info-item">
+                    <span class="ec2-info-label">Data Bucket</span>
+                    <span class="ec2-info-value" id="infoDataBucket">---</span>
+                </div>
+            </div>
+        </section>
 
-    const store = {
-      state: {}
-    }
+        <!-- Services Section -->
+        <section class="animate-in animate-delay-2">
+            <div class="section-header">
+                <div class="section-title">
+                    <div class="section-title-icon">
+                        <i data-lucide="rocket"></i>
+                    </div>
+                    <h2>Quick Launch Services</h2>
+                </div>
+                <span class="section-badge" id="servicesCount">0 SERVICES</span>
+            </div>
+            <div class="services-grid" id="servicesGrid">
+                <!-- Services will be populated here -->
+            </div>
+        </section>
 
-    const Home = {
-      template: '#home-template',
-      data: function () {
-        return {
-          state: store.state,
-          apps: [],
-          projectInfo: {},
-          isLoading: false,
-          ec2List: [{name: 'EC2', ec2Status: 'unknown'}],   // If GPU exist we will add a element 
-          ec2SetupStatus: 'Loading...'
-        }
-      },
-      methods: {
-        async getEc2Status(index){
-            this.ec2List[index].ec2Status = '...';
-            const response = await fetch(`${baseUrl}/ec2_status?index=${index}`);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
+        <!-- Project Information -->
+        <section class="animate-in animate-delay-3">
+            <div class="section-header">
+                <div class="section-title">
+                    <div class="section-title-icon">
+                        <i data-lucide="settings"></i>
+                    </div>
+                    <h2>Project Configuration</h2>
+                </div>
+            </div>
+            <div class="info-grid" id="projectInfoGrid">
+                <!-- Project info will be populated here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span id="toastIcon"><i data-lucide="check"></i></span>
+        <span id="toastMessage">Operation successful</span>
+    </div>
+
+    <script>
+        const baseUrl = window.location.origin;
+        let projectInfo = null;
+
+        // Service definitions with Lucide icon names and categories
+        const services = [
+            { name: 'Open WebUI', port: '7101', icon: 'message-square', category: 'ai', desc: 'AI Chat Interface' },
+            { name: 'Portainer', port: '7102', icon: 'container', category: 'ops', desc: 'Container Management' },
+            { name: 'Jupyter Lab', port: '7103', icon: 'book-open', category: 'dev', desc: 'Interactive Notebooks' },
+            { name: 'Code Server', port: '7104', icon: 'code', category: 'dev', desc: 'VS Code in Browser' },
+            { name: 'LiteLLM', port: '7105', icon: 'sparkles', category: 'ai', desc: 'LLM Proxy Gateway' },
+            { name: 'Bedrock Gateway', port: '7106', icon: 'globe', category: 'ai', desc: 'AWS Bedrock API' },
+            { name: 'n8n', port: '7107', icon: 'workflow', category: 'ops', desc: 'Workflow Automation' }
+        ];
+
+        async function fetchWithAuth(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                credentials: 'include'
+            });
+
+            if (response.status === 401) {
+                window.location.href = '/';
+                return null;
             }
-            this.ec2List[index].ec2Status = await response.json();
-            console.log('EC2 status:', this.ec2List[index].ec2Status);
-        },
-        async refreshProjectInfo(){
-            // If no cached data, fetch from API
-            const response = await fetch(`${baseUrl}/project-info`);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
+
+            return response;
+        }
+
+        async function loadProjectInfo() {
+            try {
+                const response = await fetchWithAuth(`${baseUrl}/project-info`);
+                if (!response) return;
+
+                projectInfo = await response.json();
+
+                // Update header
+                document.getElementById('headerProjectId').textContent = projectInfo.projectId || '---';
+
+                // Update EC2 info panel
+                document.getElementById('infoInstanceId').textContent = projectInfo.instanceId || '---';
+                document.getElementById('infoElasticIp').textContent = projectInfo.elasticIP || '---';
+                document.getElementById('infoPublicDns').textContent = projectInfo.eipPublicDns || '---';
+                document.getElementById('infoDataBucket').textContent = projectInfo.dataBucketName || '---';
+
+                renderServices();
+                renderProjectInfo();
+                await updateEC2Status();
+
+                // Update connection status
+                document.getElementById('connectionStatus').classList.add('online');
+                document.getElementById('connectionText').textContent = 'CONNECTED';
+
+            } catch (error) {
+                console.error('Error loading project info:', error);
+                document.getElementById('connectionStatus').classList.add('offline');
+                document.getElementById('connectionText').textContent = 'ERROR';
             }
-            this.projectInfo = await response.json();
-            console.log('Fetched projectInfo:', this.projectInfo);
+        }
 
-            // Cache the fetched data
-            sessionStorage.setItem('projectInfo', JSON.stringify(this.projectInfo));
-        },
-        async startEc2(index) {
-          try {
-            this.ec2List[index].ec2Status = '...';
-            let response = await fetch(`${baseUrl}/start-ec2?index=${index}`);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
+        function renderServices() {
+            const grid = document.getElementById('servicesGrid');
+            const elasticIP = projectInfo.elasticIP;
+
+            grid.innerHTML = services.map((service, index) => `
+                <a href="https://${elasticIP}:${service.port}"
+                   target="_blank"
+                   class="service-card"
+                   data-category="${service.category}"
+                   style="animation-delay: ${0.05 * index}s">
+                    <div class="service-icon">
+                        <i data-lucide="${service.icon}"></i>
+                    </div>
+                    <span class="service-name">${service.name}</span>
+                    <span class="service-port">:${service.port}</span>
+                    <span class="service-category">${service.category}</span>
+                </a>
+            `).join('');
+
+            document.getElementById('servicesCount').textContent = `${services.length} SERVICES`;
+
+            // Re-initialize Lucide icons for dynamically added content
+            lucide.createIcons();
+        }
+
+        function renderProjectInfo() {
+            const infoGrid = document.getElementById('projectInfoGrid');
+            const info = [
+                { label: 'Project ID', value: projectInfo.projectId, highlight: true },
+                { label: 'AWS Account', value: projectInfo.awsAccountId },
+                { label: 'AWS Region', value: projectInfo.awsRegion || 'us-east-1' },
+                { label: 'VPC ID', value: projectInfo.vpcId },
+                { label: 'Subnet ID', value: projectInfo.subnetId },
+                { label: 'Security Group', value: projectInfo.ec2SecurityGroupId }
+            ].filter(item => item.value);
+
+            infoGrid.innerHTML = info.map(item => `
+                <div class="info-card">
+                    <span class="info-label">${item.label}</span>
+                    <span class="info-value ${item.highlight ? 'highlight' : ''}">${item.value}</span>
+                </div>
+            `).join('');
+        }
+
+        async function updateEC2Status() {
+            try {
+                const response = await fetchWithAuth(`${baseUrl}/ec2_status?index=0`);
+                if (!response) return;
+
+                const status = await response.json();
+                const badge = document.getElementById('ec2StatusBadge');
+
+                badge.textContent = status.toUpperCase();
+                badge.className = 'ec2-badge';
+
+                if (status === 'running') {
+                    badge.classList.add('running');
+                } else if (status === 'stopped') {
+                    badge.classList.add('stopped');
+                } else {
+                    badge.classList.add('pending');
+                }
+            } catch (error) {
+                console.error('Error updating EC2 status:', error);
             }
-            let state = await response.json();
-            console.log({ state });
+        }
 
-            if (state.status) {
-              this.$root.showSnackbar(`Start status: ${state.status}`, 'success');
+        async function startEC2(index) {
+            try {
+                showToast('Starting EC2 instance...', 'info');
+                const response = await fetchWithAuth(`${baseUrl}/start-ec2?index=${index}`);
+                if (!response) return;
+
+                showToast('EC2 instance starting', 'success');
+                setTimeout(updateEC2Status, 2000);
+                setTimeout(updateEC2Status, 5000);
+            } catch (error) {
+                console.error('Error starting EC2:', error);
+                showToast('Failed to start EC2', 'error');
             }
-            this.getEc2Status(index);
-          } catch (error) {
-            console.error("Error starting EC2:", error);
-            this.$root.showSnackbar("Error starting EC2", 'error');
-          }
-        },
-        async stopEc2(index) {
-          try {
-            this.ec2List[index].ec2Status = '...';
-            let response = await fetch(`${baseUrl}/stop-ec2?index=${index}`);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        async function stopEC2(index) {
+            if (!confirm('Are you sure you want to stop the EC2 instance?')) return;
+
+            try {
+                showToast('Stopping EC2 instance...', 'info');
+                const response = await fetchWithAuth(`${baseUrl}/stop-ec2?index=${index}`);
+                if (!response) return;
+
+                showToast('EC2 instance stopping', 'success');
+                setTimeout(updateEC2Status, 2000);
+                setTimeout(updateEC2Status, 5000);
+            } catch (error) {
+                console.error('Error stopping EC2:', error);
+                showToast('Failed to stop EC2', 'error');
             }
-            let state = await response.json();
-            console.log({ state });
+        }
 
-            if (state.status) {
-              // this.$root.showSnackbar(state.status, 'success');
-              this.$root.showSnackbar(`Stop status: ${state.status}`, 'success');
+        async function logout() {
+            try {
+                await fetch(`${baseUrl}/logout`, { credentials: 'include' });
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Error logging out:', error);
             }
-            this.getEc2Status(index);
-          } catch (error) {
-            console.error("Error stopping EC2:", error);
-            this.$root.showSnackbar("Error stopping EC2", 'error');
-          }
-        },
-        async getEc2SetupStatus(){
-          try {
-            let response = await fetch(`${baseUrl}/ec2-setup-status`);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            this.ec2SetupStatus = await response.json();
-            console.log('ec2SetupStatus', this.ec2SetupStatus);
-
-          } catch (error) {
-            console.error("Could not get EC2 setup status:", error);
-          }
-
-        }
-      },
-      async mounted() {
-        try {
-          const cachedProjectInfo = sessionStorage.getItem('projectInfo');
-          if (cachedProjectInfo) {
-            // If cached data exists, parse and use it
-            this.projectInfo = JSON.parse(cachedProjectInfo);
-            console.log('Using cached projectInfo');
-          } else {
-            await this.refreshProjectInfo();
-          }
-        } catch (error) {
-          console.error("Could not get project info:", error);
         }
 
-        this.getEc2SetupStatus();
-        this.getEc2Status(0);
-        if(this.projectInfo.instanceIdG){
-          console.log('EC2 GPU server exist. ');
-          this.ec2List.push({name: 'GPU EC2', ec2Status: 'unknown'});
-          this.getEc2Status(1);
+        function refreshData() {
+            showToast('Refreshing data...', 'info');
+            loadProjectInfo();
         }
 
-        console.log('Home mounted');
-      },
-      created() {
-        console.log('Home created');
-      }
-    }
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastMessage = document.getElementById('toastMessage');
 
-    const Schedule = {
-      template: '#schedule-template',
-      data: function () {
-        return {
-          state: store.state,
-          startSchedulerEnabled: false,
-          stopSchedulerEnabled: false,
-          startTime: null,
-          stopTime: null,
-          ec2SchedularInfo: {}
-        }
-      },
-      methods: {
-        saveSettings() {
-          // Here you would implement the logic to save the settings
-          console.log('Start Scheduler:', this.startSchedulerEnabled);
-          console.log('Start Time:', this.startTime);
-          console.log('Stop Scheduler:', this.stopSchedulerEnabled);
-          console.log('Stop Time:', this.stopTime);
-          // You can send this data to your backend or handle it as needed
-        },
-      },
-      mounted() {
-        console.log('Schedule mounted');
-      },
-      async created() {
-        let response = await fetch(`${baseUrl}/ec2-schedular-info`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        this.ec2SchedularInfo = await response.json();
-        console.log('Fetched ec2-schedular-info:', this.ec2SchedularInfo);
+            toastMessage.textContent = message;
+            toast.className = 'toast show';
 
-        console.log('Schedule created');
-      }
-    }
-
-
-    const About = {
-      template: '#about-template',
-      data: function () {
-        return {
-          state: store.state,
-          showAllowResults: false,
-          allowResult: ''
-        }
-      },
-      methods: {
-        async allow() {
-          try {
-            let ipApi = 'https://api.ipify.org/?format=json';
-            // let ipApi = 'https://api.my-ip.io/v2/ip.json';
-            this.allowResult = 'Finding ip';            
-            let response = await fetch(ipApi);
-            const data = await response.json();
-
-            // Extract the IP address from the response
-            const ipAddress = data.ip;
-
-            // Display the IP address (you can modify this part as needed)
-            console.log('Your IP address is:', ipAddress);
-            this.allowResult = this.allowResult + '...' + ipAddress
-
-            response = await fetch(`${baseUrl}/allow?ip=${ipAddress}`);
-            if (!response.ok) {
-              // this.allowResult = this.allowResult + '...Error1: ' + response.status;
-              const responseBody = await response.text();              
-              throw new Error(responseBody);
-            }
-            let allowResp = await response.json();
-            console.log('allowResp:', allowResp);
-            // this.allowResult = '12';            
-            this.allowResult = this.allowResult + '...' + allowResp.message;
-          } catch (error) {
-            // this.allowResult = '1X';            
-            this.allowResult = this.allowResult + '...' + error;
-            console.error('Error fetching IP address:', error);
-            throw error; // Re-throw the error if you want to handle it outside the function
-          }
-        }
-      },
-      mounted() {
-        console.log('About mounted');
-      },
-      created() {
-        console.log('About created');
-      }
-    }
-
-
-
-    const snackbarMixin = {
-      data() {
-        return {
-          snackbar: false,
-          snackbarText: '',
-          snackbarColor: 'success',
-        }
-      },
-      methods: {
-        showSnackbar(text, color = 'success') {
-          this.snackbarText = text;
-          this.snackbarColor = color;
-          this.snackbar = true;
-        }
-      }
-    };
-
-    const routes = [
-      { path: '/', component: Home },
-      { path: '/schedule', component: Schedule },
-      { path: '/about', component: About }
-    ];
-
-    const router = createRouter({
-      history: createWebHashHistory(),
-      routes
-    });
-
-
-    const vuetify = createVuetify();
-
-    const app = createApp({
-      mixins: [snackbarMixin],
-
-      data() {
-        return {
-        };
-      },
-      methods: {
-        async logout() {
-          try {
-            let response = await fetch(`${baseUrl}/logout`);
-            sessionStorage.removeItem('projectInfo');
-            if (response.ok) {
-              window.location.href = '/login';
+            if (type === 'success') {
+                toast.classList.add('success');
+                toastIcon.innerHTML = '<i data-lucide="check-circle"></i>';
+            } else if (type === 'error') {
+                toast.classList.add('error');
+                toastIcon.innerHTML = '<i data-lucide="x-circle"></i>';
             } else {
-              console.error('Logout failed');
+                toastIcon.innerHTML = '<i data-lucide="loader"></i>';
             }
-          } catch (error) {
-            console.error("Could not fetch apps:", error);
-          }
+
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
         }
-      }
-    });
 
-    app.use(vuetify);
-    app.use(router);
-    const vm = app.mount('#app');
-  </script>
+        // Initialize
+        async function init() {
+            // Initialize Lucide icons
+            lucide.createIcons();
 
-  <script>
-  </script>
+            await loadProjectInfo();
+
+            // Hide loading screen
+            document.getElementById('loadingScreen').classList.add('hidden');
+
+            // Auto-refresh EC2 status every 30 seconds
+            setInterval(updateEC2Status, 30000);
+        }
+
+        init();
+    </script>
 </body>
-
 </html>

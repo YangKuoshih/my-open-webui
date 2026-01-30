@@ -1,0 +1,5 @@
+# Bedrock Gateway
+:7106 {
+    import common
+    reverse_proxy localhost:8106
+}
