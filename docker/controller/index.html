@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controller</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify-labs.min.css" rel="stylesheet">
+
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/editor/editor.main.css"> -->
+
+  <style>
+  </style>
+
+  <!-- <script type="text/x-template" id="xyz-template">
+    <v-container fluid>
+      <div class="text-h5">Xys</div>
+      <p>About xyz</p>
+    </v-container>
+  </script> -->
+
+  <script type="text/x-template" id="about-template">
+    <v-container fluid>
+      <v-card>
+        <v-card-title class="text-h5">About</v-card-title>
+        <v-card-text>
+          <p>
+            This application 
+            <span 
+              @click="allow" 
+              XXtouchstart="allow"
+              style="cursor: text;"
+            >allows</span> 
+            you to experiment with GenAI.
+            <p>
+              {{allowResult}}
+            </p>
+          </p>
+        </v-card-text>
+      </v-card>
+    </v-container>
+  </script>
+
+  <script type="text/x-template" id="schedule-template">
+    <v-container fluid>
+      <v-row>
+        <v-col cols="8">
+          <v-card>
+            <v-card-title>EC2 Audo Start Stop Scheduler Settings</v-card-title>
+            <v-card-text>
+              <!-- Start EC2 Scheduler -->
+              <v-switch
+                v-model="startSchedulerEnabled"
+                label="Enable Start EC2 Scheduler"
+              ></v-switch>
+              <v-row v-if="startSchedulerEnabled">
+                <v-col cols="12" sm="6">
+                  <v-time-picker
+                    v-model="startTime"
+                    format="24hr"
+                    :disabled="!startSchedulerEnabled"
+                  ></v-time-picker>
+                </v-col>
+              </v-row>
+      
+              <!-- Stop EC2 Scheduler -->
+              <v-switch
+                v-model="stopSchedulerEnabled"
+                label="Enable Stop EC2 Scheduler"
+              ></v-switch>
+              <v-row v-if="stopSchedulerEnabled">
+                <v-col cols="12" sm="6">
+                  <v-time-picker
+                    v-model="stopTime"
+                    format="24hr"
+                    :disabled="!stopSchedulerEnabled"
+                  ></v-time-picker>
+                </v-col>
+              </v-row>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="primary" @click="saveSettings">Save Settings</v-btn>
+            </v-card-actions>
+          </v-card>        
+        </v-col>
+      </v-row>
+    </v-container>
+  </script>
+
+  <script type="text/x-template" id="home-template">
+    <v-container fluid>
+      <v-row v-if="ec2SetupStatus.endedMinutes < 5 && ec2SetupStatus.endedHours < 1">
+        <v-col>
+          EC2 Setup Status: {{ec2SetupStatus.status}}
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col cols="4">
+          <v-card>
+            <!-- <v-card-title>Application Links</v-card-title> -->
+
+            <v-card-title class="d-flex align-center">
+              Application Links
+              <v-btn
+                icon
+                x-small
+                class="ml-2"
+                @click="refreshProjectInfo"
+              >
+                <v-icon>mdi-refresh</v-icon>
+              </v-btn>
+            </v-card-title>
+
+            <v-card-text>
+
+              <v-list>
+                <v-list-item>
+                  <v-list-item-title style="font-weight: bold; font-size: 1.2em; color: #1976D2;">Running on EC2</v-list-item-title>
+                </v-list-item>
+                <v-list-item
+                  v-for="app in projectInfo.apps"
+                  :key="app.name"
+                  :href="'https://' + projectInfo.eipPublicDns + ':' + app.port"
+                  target="_blank"
+                >
+                  <v-list-item-title>{{ app.name }}</v-list-item-title>
+                </v-list-item>
+              </v-list>
+              
+              <v-list v-if="projectInfo.appsg">
+                <v-list-item>
+                  <v-list-item-title style="font-weight: bold; font-size: 1.2em; color: #1976D2;">Running on GPU EC2</v-list-item-title>
+                </v-list-item>
+                <v-list-item
+                  v-for="app in projectInfo.appsg"
+                  :key="app.name"
+                  :href="'https://' + projectInfo.eipPublicDnsG + ':' + app.port"
+                  target="_blank"
+                >
+                  <v-list-item-title>{{ app.name }}</v-list-item-title>
+                </v-list-item>
+              </v-list>              
+
+            </v-card-text>
+
+
+
+          </v-card>
+        </v-col>
+    
+        <v-col cols="8">
+          <v-row>
+            <v-col v-for="(ec2, index) in ec2List" :key="index">
+              <v-card>
+                <v-card-title>{{ec2.name}} Controls
+  
+                  (Status: {{ec2.ec2Status}})
+                  <v-icon
+                    xx-small
+                    class="ml-2"
+                    @click="getEc2Status(index)"
+                  >
+                    mdi-refresh
+                  </v-icon>
+  
+                </v-card-title>
+                <v-card-text>
+                  <v-btn
+                    color="success"
+                    @click="startEc2(index)"
+                    class="mr-4 mb-4"
+                  >
+                    <v-icon left>mdi-play</v-icon>
+                    Start EC2
+                  </v-btn>
+                  
+                  <v-btn
+                    color="error"
+                    @click="stopEc2(index)"
+                    class="mr-4 mb-4"
+                  >
+                    <v-icon left>mdi-stop</v-icon>
+                    Stop EC2
+                  </v-btn>
+                </v-card-text>
+              </v-card>
+  
+            </v-col>
+          </v-row>
+          <v-row>
+
+
+            <v-col>
+              <v-card>
+                <v-card-title>
+                  Project Information
+                </v-card-title>
+                <v-card-text>
+                  <v-list>
+                    <v-list-item>
+                      <v-list-item-title>AWS Account ID</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.awsAccountId }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>Elastic IP</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.elasticIP }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>EIP Public DNS</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.eipPublicDns }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>Instance ID (G)</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.instanceIdG }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>EC2 Public DNS</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.ec2PublicDns }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>Instance ID</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.instanceId }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>Elastic IP (G)</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.elasticIPG }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>EIP Public DNS (G)</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.eipPublicDnsG }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>Controller URL</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.controllerUrl }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>Data Bucket Name</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.dataBucketName }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>Project ID</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.projectId }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>EC2 Security Group ID</v-list-item-title>
+                      <v-list-item-subtitle>{{ projectInfo.ec2SecurityGroupId }}</v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </v-card-text>
+              </v-card>              
+
+            </v-col>
+
+
+
+          </v-row>
+        </v-col>
+      </v-row>
+
+
+    </v-container>
+  </script>
+</head>
+
+<body>
+  <div id="app">
+    <v-app>
+      <v-app-bar color="primary">
+        <v-app-bar-title>Controller</v-app-bar-title>
+        <v-spacer></v-spacer>
+        <v-btn to="/">Home</v-btn>
+        <!-- <v-btn to="/schedule">Schedule</v-btn> -->
+        <v-btn to="/about">About</v-btn>
+        <v-btn @click="logout">Logout</v-btn>
+      </v-app-bar>
+
+      <v-main>
+        <router-view></router-view>
+      </v-main>
+
+
+      <v-snackbar v-model="snackbar" :color="snackbarColor">
+        {{ snackbarText }}
+        <template v-slot:actions>
+          <v-btn color="white" text @click="snackbar = false">Close</v-btn>
+        </template>
+      </v-snackbar>
+    </v-app>
+  </div>
+
+  <script src="https://unpkg.com/vue@3.3.4/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify-labs.min.js"></script>
+  <script src="https://unpkg.com/vue-router@4.2.4/dist/vue-router.global.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/loader.js"></script> -->
+  <script>
+    const { createApp, ref } = Vue;
+    const { createVuetify } = Vuetify;
+    const { createRouter, createWebHashHistory } = VueRouter;
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    let baseUrl = ''
+    if (!isLocalhost) {
+      baseUrl = `https://${window.location.hostname}`
+      console.log(`Using base URL: ${baseUrl}`);
+    }
+
+    const store = {
+      state: {}
+    }
+
+    const Home = {
+      template: '#home-template',
+      data: function () {
+        return {
+          state: store.state,
+          apps: [],
+          projectInfo: {},
+          isLoading: false,
+          ec2List: [{name: 'EC2', ec2Status: 'unknown'}],   // If GPU exist we will add a element 
+          ec2SetupStatus: 'Loading...'
+        }
+      },
+      methods: {
+        async getEc2Status(index){
+            this.ec2List[index].ec2Status = '...';
+            const response = await fetch(`${baseUrl}/ec2_status?index=${index}`);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            this.ec2List[index].ec2Status = await response.json();
+            console.log('EC2 status:', this.ec2List[index].ec2Status);
+        },
+        async refreshProjectInfo(){
+            // If no cached data, fetch from API
+            const response = await fetch(`${baseUrl}/project-info`);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            this.projectInfo = await response.json();
+            console.log('Fetched projectInfo:', this.projectInfo);
+
+            // Cache the fetched data
+            sessionStorage.setItem('projectInfo', JSON.stringify(this.projectInfo));
+        },
+        async startEc2(index) {
+          try {
+            this.ec2List[index].ec2Status = '...';
+            let response = await fetch(`${baseUrl}/start-ec2?index=${index}`);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            let state = await response.json();
+            console.log({ state });
+
+            if (state.status) {
+              this.$root.showSnackbar(`Start status: ${state.status}`, 'success');
+            }
+            this.getEc2Status(index);
+          } catch (error) {
+            console.error("Error starting EC2:", error);
+            this.$root.showSnackbar("Error starting EC2", 'error');
+          }
+        },
+        async stopEc2(index) {
+          try {
+            this.ec2List[index].ec2Status = '...';
+            let response = await fetch(`${baseUrl}/stop-ec2?index=${index}`);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            let state = await response.json();
+            console.log({ state });
+
+            if (state.status) {
+              // this.$root.showSnackbar(state.status, 'success');
+              this.$root.showSnackbar(`Stop status: ${state.status}`, 'success');
+            }
+            this.getEc2Status(index);
+          } catch (error) {
+            console.error("Error stopping EC2:", error);
+            this.$root.showSnackbar("Error stopping EC2", 'error');
+          }
+        },
+        async getEc2SetupStatus(){
+          try {
+            let response = await fetch(`${baseUrl}/ec2-setup-status`);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            this.ec2SetupStatus = await response.json();
+            console.log('ec2SetupStatus', this.ec2SetupStatus);
+
+          } catch (error) {
+            console.error("Could not get EC2 setup status:", error);
+          }
+
+        }
+      },
+      async mounted() {
+        try {
+          const cachedProjectInfo = sessionStorage.getItem('projectInfo');
+          if (cachedProjectInfo) {
+            // If cached data exists, parse and use it
+            this.projectInfo = JSON.parse(cachedProjectInfo);
+            console.log('Using cached projectInfo');
+          } else {
+            await this.refreshProjectInfo();
+          }
+        } catch (error) {
+          console.error("Could not get project info:", error);
+        }
+
+        this.getEc2SetupStatus();
+        this.getEc2Status(0);
+        if(this.projectInfo.instanceIdG){
+          console.log('EC2 GPU server exist. ');
+          this.ec2List.push({name: 'GPU EC2', ec2Status: 'unknown'});
+          this.getEc2Status(1);
+        }
+
+        console.log('Home mounted');
+      },
+      created() {
+        console.log('Home created');
+      }
+    }
+
+    const Schedule = {
+      template: '#schedule-template',
+      data: function () {
+        return {
+          state: store.state,
+          startSchedulerEnabled: false,
+          stopSchedulerEnabled: false,
+          startTime: null,
+          stopTime: null,
+          ec2SchedularInfo: {}
+        }
+      },
+      methods: {
+        saveSettings() {
+          // Here you would implement the logic to save the settings
+          console.log('Start Scheduler:', this.startSchedulerEnabled);
+          console.log('Start Time:', this.startTime);
+          console.log('Stop Scheduler:', this.stopSchedulerEnabled);
+          console.log('Stop Time:', this.stopTime);
+          // You can send this data to your backend or handle it as needed
+        },
+      },
+      mounted() {
+        console.log('Schedule mounted');
+      },
+      async created() {
+        let response = await fetch(`${baseUrl}/ec2-schedular-info`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        this.ec2SchedularInfo = await response.json();
+        console.log('Fetched ec2-schedular-info:', this.ec2SchedularInfo);
+
+        console.log('Schedule created');
+      }
+    }
+
+
+    const About = {
+      template: '#about-template',
+      data: function () {
+        return {
+          state: store.state,
+          showAllowResults: false,
+          allowResult: ''
+        }
+      },
+      methods: {
+        async allow() {
+          try {
+            let ipApi = 'https://api.ipify.org/?format=json';
+            // let ipApi = 'https://api.my-ip.io/v2/ip.json';
+            this.allowResult = 'Finding ip';            
+            let response = await fetch(ipApi);
+            const data = await response.json();
+
+            // Extract the IP address from the response
+            const ipAddress = data.ip;
+
+            // Display the IP address (you can modify this part as needed)
+            console.log('Your IP address is:', ipAddress);
+            this.allowResult = this.allowResult + '...' + ipAddress
+
+            response = await fetch(`${baseUrl}/allow?ip=${ipAddress}`);
+            if (!response.ok) {
+              // this.allowResult = this.allowResult + '...Error1: ' + response.status;
+              const responseBody = await response.text();              
+              throw new Error(responseBody);
+            }
+            let allowResp = await response.json();
+            console.log('allowResp:', allowResp);
+            // this.allowResult = '12';            
+            this.allowResult = this.allowResult + '...' + allowResp.message;
+          } catch (error) {
+            // this.allowResult = '1X';            
+            this.allowResult = this.allowResult + '...' + error;
+            console.error('Error fetching IP address:', error);
+            throw error; // Re-throw the error if you want to handle it outside the function
+          }
+        }
+      },
+      mounted() {
+        console.log('About mounted');
+      },
+      created() {
+        console.log('About created');
+      }
+    }
+
+
+
+    const snackbarMixin = {
+      data() {
+        return {
+          snackbar: false,
+          snackbarText: '',
+          snackbarColor: 'success',
+        }
+      },
+      methods: {
+        showSnackbar(text, color = 'success') {
+          this.snackbarText = text;
+          this.snackbarColor = color;
+          this.snackbar = true;
+        }
+      }
+    };
+
+    const routes = [
+      { path: '/', component: Home },
+      { path: '/schedule', component: Schedule },
+      { path: '/about', component: About }
+    ];
+
+    const router = createRouter({
+      history: createWebHashHistory(),
+      routes
+    });
+
+
+    const vuetify = createVuetify();
+
+    const app = createApp({
+      mixins: [snackbarMixin],
+
+      data() {
+        return {
+        };
+      },
+      methods: {
+        async logout() {
+          try {
+            let response = await fetch(`${baseUrl}/logout`);
+            sessionStorage.removeItem('projectInfo');
+            if (response.ok) {
+              window.location.href = '/login';
+            } else {
+              console.error('Logout failed');
+            }
+          } catch (error) {
+            console.error("Could not fetch apps:", error);
+          }
+        }
+      }
+    });
+
+    app.use(vuetify);
+    app.use(router);
+    const vm = app.mount('#app');
+  </script>
+
+  <script>
+  </script>
+</body>
+
+</html>

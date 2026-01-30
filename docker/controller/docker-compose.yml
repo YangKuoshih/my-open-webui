@@ -1,0 +1,13 @@
+services:
+  controller:
+    build: .
+    container_name: controller
+    restart: unless-stopped
+    ports:
+      - "8000:8080"
+    environment:
+      - PROJECT_ID=${PROJECT_ID}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    # Use EC2 instance role for AWS credentials
+    volumes:
+      - /etc/localtime:/etc/localtime:ro

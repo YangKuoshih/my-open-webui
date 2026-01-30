@@ -1,0 +1,59 @@
+---
+- name: Deploy Controller Docker Container
+  hosts: all
+  become: yes
+  vars:
+    project_id: "{{ lookup('env', 'PROJECT_ID') }}"
+    aws_region: "{{ lookup('env', 'AWS_REGION') | default('us-east-1', true) }}"
+    controller_port: 7000
+    
+  tasks:
+    - name: Create controller directory
+      file:
+        path: /opt/controller
+        state: directory
+        mode: '0755'
+
+    - name: Copy controller files
+      copy:
+        src: "{{ item }}"
+        dest: /opt/controller/
+        mode: '0644'
+      loop:
+        - ../../docker/controller/app.py
+        - ../../docker/controller/requirements.txt
+        - ../../docker/controller/Dockerfile
+        - ../../docker/controller/docker-compose.yml
+        - ../../docker/controller/login.html
+        - ../../docker/controller/index.html
+
+    - name: Create .env file for docker-compose
+      copy:
+        content: |
+          PROJECT_ID={{ project_id }}
+          AWS_REGION={{ aws_region }}
+        dest: /opt/controller/.env
+        mode: '0600'
+
+    - name: Build and start controller container
+      community.docker.docker_compose_v2:
+        project_src: /opt/controller
+        state: present
+        build: always
+      environment:
+        PROJECT_ID: "{{ project_id }}"
+        AWS_REGION: "{{ aws_region }}"
+
+    - name: Wait for controller to be ready
+      uri:
+        url: "http://localhost:{{ controller_port }}/hello"
+        method: GET
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 2
+
+    - name: Display controller URL
+      debug:
+        msg: "Controller is running at https://{{ ansible_host }}:{{ controller_port }}"

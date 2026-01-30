@@ -952,8 +952,8 @@ def lambda_handler(event, context):
         project_info = get_project_info(parameter_name)
         apps = get_project_info(f'/{project_id}/apps')
         appsg = get_project_info(f'/{project_id}/appsg')
-        project_info['apps'] = apps
-        project_info['appsg'] = appsg
+        project_info['apps'] = apps if apps else []
+        project_info['appsg'] = appsg if appsg else []
 
         # Remove keys
         keys_to_remove = ['controller_jwt_secret_key', 'controller_auth_key', 'bedrockGatewayApiKey', 'codeServerPassword', 'jupyterLabToken', 'liteLLMApiKey', 'serverToolPassword', 'serverToolJwtSecret']  # Replace with the actual keys you want to remove

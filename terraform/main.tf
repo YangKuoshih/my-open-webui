@@ -770,6 +770,17 @@ resource "aws_lambda_function_url" "controller_lambda_url" {
   }
 }
 
+# Allow public invocation of the Lambda function URL
+resource "aws_lambda_permission" "allow_function_url" {
+  statement_id           = "AllowExecutionFromFunctionURL"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.main_controller_lambda.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
+  
+  depends_on = [aws_lambda_function_url.controller_lambda_url]
+}
+
 
 
 
@@ -950,7 +961,13 @@ output "my_public_ip" {
 }
 
 output "controller_url" {
+  value = "https://${aws_eip.dev_ec2_eip.public_dns}:7000"
+  description = "Controller URL running on EC2"
+}
+
+output "controller_url_lambda" {
   value = aws_lambda_function_url.controller_lambda_url.function_url
+  description = "Controller URL via Lambda (may be blocked by org policy)"
 }
 
 
@@ -980,7 +997,8 @@ resource "aws_ssm_parameter" "resource_ids" {
     projectId                 = var.project_id,
     instanceId                = aws_instance.main_instance.id,
     instanceIdG               = try(aws_instance.gpu_instance[0].id, null),
-    controllerUrl             = aws_lambda_function_url.controller_lambda_url.function_url,
+    controllerUrl             = "https://${aws_eip.dev_ec2_eip.public_dns}:7000",
+    controllerUrlLambda       = aws_lambda_function_url.controller_lambda_url.function_url,
     dataBucketName            = aws_s3_bucket.data_bucket.id,
     codeServerPassword        = var.code_server_password,
     serverToolPassword        = var.server_tool_password,
@@ -1020,7 +1038,8 @@ set INSTANCE_ID_G=${try(aws_instance.gpu_instance[0].id, "")}
 set EIP_PUBLIC_DNS=${aws_eip.dev_ec2_eip.public_dns}
 set EIP_PUBLIC_DNS_G=${try(aws_eip.gpu_ec2_eip[0].public_dns, "")}
 set EC2_PUBLIC_DNS=${aws_instance.main_instance.public_dns}
-set CONTROLLER_URL=${aws_lambda_function_url.controller_lambda_url.function_url}
+set CONTROLLER_URL=https://${aws_eip.dev_ec2_eip.public_dns}:7000
+set CONTROLLER_URL_LAMBDA=${aws_lambda_function_url.controller_lambda_url.function_url}
 set DATA_BUCKET_NAME=${aws_s3_bucket.data_bucket.id}
 set EC2_SECURITY_GROUP_ID=${aws_security_group.allow_sources.id}
 set GPU_EC2_INSTALL_COMFYUI=${var.gpu_ec2_install_comfyui}
