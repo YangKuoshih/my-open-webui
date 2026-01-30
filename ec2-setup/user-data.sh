@@ -26,15 +26,20 @@ install_docker() {
 }
 
 install_docker_compose() {
-    if command_exists docker-compose; then
-        echo "Docker Compose is already installed."
-    else
-        echo "Installing Docker Compose..."
-        curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o ~/docker-compose
-        sudo mv ~/docker-compose /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-        docker-compose --version
-    fi
+    echo "Installing Docker Compose..."
+    
+    # Install Docker Compose plugin (v2) - the modern approach
+    sudo mkdir -p /usr/local/lib/docker/cli-plugins
+    sudo curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
+    sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+    
+    # Also install standalone docker-compose for backward compatibility
+    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+    
+    # Verify installation
+    docker compose version
+    docker-compose --version
 }
 
 start_containers() {
@@ -540,6 +545,46 @@ add_vars_to_bashrc() {
     echo "Finished updating .bashrc"
 }
 
+install_ansible() {
+    if command_exists ansible; then
+        echo "Ansible is already installed."
+    else
+        echo "Installing Ansible..."
+        sudo dnf install ansible -y
+        ansible --version
+    fi
+}
+
+install_controller() {
+    echo "Installing Controller..."
+    
+    CONTROLLER_DIR=/home/ec2-user/docker/controller
+    
+    if [ -d "$CONTROLLER_DIR" ]; then
+        cd $CONTROLLER_DIR
+        
+        # Create .env file
+        cat << EOF > .env
+PROJECT_ID=$PROJECT_ID
+AWS_REGION=$AWS_REGION
+EOF
+        
+        # Build and start the controller (using docker build to avoid buildx dependency)
+        docker build -t controller . --quiet
+        docker run -d \
+            --name controller \
+            --restart unless-stopped \
+            -p 8000:8080 \
+            --env-file .env \
+            -v /etc/localtime:/etc/localtime:ro \
+            controller
+        
+        echo "Controller installed and running on port 7000"
+    else
+        echo "Controller directory not found at $CONTROLLER_DIR"
+    fi
+}
+
 # Main execution
 register_start
 update_dnf
@@ -551,6 +596,7 @@ install_docker
 install_docker_compose
 start_containers
 install_portainer
+install_controller
 install_caddy
 install_code_server
 install_miniconda
